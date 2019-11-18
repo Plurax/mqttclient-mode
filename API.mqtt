@@ -1,0 +1,18 @@
+# Initial setup
+:mqtt-host := "localhost"
+#:mqtt-ca-path := "/path/to/certs"
+#:mqtt-tls-version := "tlsv1.2"
+#:mqtt-username := "user"
+#:mqtt-password := "secret"
+:mqtt-port := 1883
+SUB #
+
+# Greetings
+:timeStamp := (format-time-string "%Y-%m-%dT%H:%M:%S+01:00")
+:user := (user-login-name)
+:client-id := "Clientid111"
+PUB /myTopic
+
+:timeStamp - This is a message from :user ¯\_(ツ)_/¯
+#
+
