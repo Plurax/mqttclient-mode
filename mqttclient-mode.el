@@ -72,24 +72,10 @@
   :group 'mqtt
   :type 'integer)
 
-(defcustom mqtt-mosquitto-pub-arguments '()
-  "Additional arguments to mosquitto_pub."
-  :group 'mqtt
-  :type '(repeat string))
-
-(defcustom mqtt-mosquitto-sub-arguments '("-v")
-  "Additional arguments to mosquitto_sub."
-  :group 'mqtt
-  :type '(repeat string))
-
 (defcustom mqtt-timestamp-format "[%y-%m-%d %H:%M:%S]\n"
   "Format for timestamps for incoming messages.
 
 Used as input for 'format-time-string'."
-  :group 'mqtt
-  :type 'string)
-(defcustom mqtt-comint-prompt "---> "
-  "Promt string for comint based interface."
   :group 'mqtt
   :type 'string)
 
@@ -180,6 +166,9 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
 (defconst mqttclient-method-topic-regexp
   "^\\(SUB\\|PUB\\) \\(.*\\)$")
 
+(defconst mqttclient-subscribe-topic-regex
+  "^\\([^ ]*\\) \\(.*\\)$")
+
 (defconst mqttclient-header-regexp
   "^\\([^](),/:;@[\\{}= \t]+\\): \\(.*\\)$")
 
@@ -260,7 +249,7 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
       (mqttclient-read-file (match-string 1 entity))
     (mqttclient-replace-all-in-string vars entity)))
 
-(defun mqttclient-parse-current-and-do ()
+(defun mqttclient-parse-current (execute)
   (save-excursion
     (goto-char (mqttclient-current-min))
     (when (re-search-forward mqttclient-method-topic-regexp (point-max) t)
@@ -281,17 +270,17 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
             (let* ((cmax (mqttclient-current-max))
                    (entity (mqttclient-parse-body (buffer-substring (min (point) cmax) cmax) vars))
                    (topic (mqttclient-replace-all-in-string vars topic)))
-              (mqtt-publish-message mqtt-host mqtt-username mqtt-password entity topic mqtt-client-id mqtt-tls-version mqtt-ca-path mqtt-port))
-          (mqtt-start-consumer mqtt-host mqtt-username mqtt-password topic mqtt-tls-version mqtt-ca-path mqtt-port))))))
+              (mqtt-publish-message mqtt-host mqtt-username mqtt-password entity topic execute mqtt-client-id mqtt-tls-version mqtt-ca-path mqtt-port))
+          (mqtt-start-consumer mqtt-host mqtt-username mqtt-password (mqttclient-replace-all-in-string vars topic) execute mqtt-tls-version mqtt-ca-path mqtt-port))))))
 
-(defun mqtt-start-consumer (mqtt-host mqtt-username mqtt-password topic &optional t-version ca-path mqtt-port)
+(defun mqtt-start-consumer (mqtt-host mqtt-username mqtt-password topic execute &optional t-version ca-path mqtt-port)
   "Start MQTT consumer.
 
-The consumer subscribes to 'mqtt-subscribe-topic' and shows incoming
+The consumer subscribes to the topic set from the buffer and shows incoming
 messages."
   (interactive)
   (let ((command (-flatten `(,mqtt-sub-bin
-                              ,mqtt-mosquitto-pub-arguments
+                             "-v",
                               "-h" ,mqtt-host
                               ,(if (and mqtt-username mqtt-password)
                                    `("-u" ,mqtt-username
@@ -303,18 +292,26 @@ messages."
                               "-q" ,(int-to-string mqtt-publish-qos-level)
                               ,(if (not (not ca-path))
                                    `("--capath" ,ca-path)))))
-        (name "mqtt-consumer")
-        (buffer "*mqtt-consumer*"))
-    (let (subproc (process
-           (make-process
-            :name name
-            :buffer buffer
-            :command command
-            :filter 'mqtt-consumer-filter)))
-      (set-process-query-on-exit-flag process nil)
-      (with-current-buffer (process-buffer process)
-        (display-buffer (current-buffer))
-        (setq-local header-line-format (format "server: %s:%d subscribe topic: '%s'" mqtt-host mqtt-port mqtt-subscribe-topic))))))
+                 (name (concat "mqtt:" mqtt-host))
+                 (buffer (concat "*mqtt:" mqtt-host "*")))
+    (when (get-process name) (delete-process (get-process name))
+          (let ((thisbuffer (buffer-name)))
+            (switch-to-buffer buffer)
+            (erase-buffer)
+            (switch-to-buffer thisbuffer)))
+    (if execute
+        (let ((process
+               (make-process
+                :name name
+                :buffer buffer
+                :command command
+                :filter 'mqtt-consumer-filter
+                :sentinel 'mqttclient-pub-sub-sentinel)))
+          (set-process-query-on-exit-flag process nil)
+          (with-current-buffer (process-buffer process)
+            (display-buffer (current-buffer))
+            (setq-local header-line-format (format "server: %s:%d subscribe topic: '%s'" mqtt-host mqtt-port mqtt-subscribe-topic))))
+      (kill-new (mapconcat 'identity command " ")))))
 
 (defun mqtt-consumer-filter (proc string)
   "Input filter for mqtt-consumer (filters STRING messages from PROC)."
@@ -325,8 +322,13 @@ messages."
         (save-excursion
           ;; Insert the text, advancing the process marker.
           (goto-char (process-mark proc))
-          (insert (concat (propertize (format-time-string mqtt-timestamp-format) 'face 'font-lock-comment-face)
-                          string))
+          
+          (let ((regx mqttclient-subscribe-topic-regex))
+            (string-match regx string)
+            (insert (concat (propertize (format-time-string mqtt-timestamp-format) 'face 'font-lock-comment-face)
+                            (propertize (match-string 1 string) 'face 'mqttclient-method-face)
+                            " "
+                            (propertize (match-string 2 string)))))
           (set-marker (process-mark proc) (point)))
         (when moving
           (goto-char (process-mark proc))
@@ -341,14 +343,13 @@ messages."
        (substring string 0 (- len 1)))
       (t string))))
 
-(defun msg-me (process event)
+(defun mqttclient-pub-sub-sentinel (process event)
              (print
                (format "Process: %s '%s', returning '%i'" (process-name process) (string-trim-final-newline event) (process-exit-status process))))
 
-(defun mqtt-publish-message (mqtt-host mqtt-username mqtt-password message topic &optional c-id t-version ca-path mqtt-port)
+(defun mqtt-publish-message (mqtt-host mqtt-username mqtt-password message topic execute &optional c-id t-version ca-path mqtt-port)
   "Publish given MESSAGE to given TOPIC."
   (let* ((command (-flatten `(,mqtt-pub-bin
-                              ,mqtt-mosquitto-pub-arguments
                               "-h" ,mqtt-host
                               ,(if (and mqtt-username mqtt-password)
                                    `("-u" ,mqtt-username
@@ -363,24 +364,26 @@ messages."
                               ,(if (not (not ca-path))
                                    `("--capath" ,ca-path))
                               "-m" ,message))))
-    (let* ((pub-proc (make-process
-                      :name (concat "mqtt-publisher-" topic)
-                      :command command
-                      :buffer "*mqtt-publisher*"
-                      :sentinel 'msg-me))))))
-;        (message (process-exit-status pub-proc))))))
+    (if execute
+        (let* ((pub-proc (make-process
+                          :name "mqtt-publisher"
+                          :command command
+                          :sentinel 'mqttclient-pub-sub-sentinel))))
+      (kill-new (mapconcat 'identity command " ")))))
 
+;;;###autoload
 (defun mqttclient-copy-command ()
   "Formats the request as a mosquitto command and copies the command to the clipboard."
   (interactive)
-  (message "Not yet implemented"))
+  (mqttclient-parse-current nil)
+  (message "Shell command copied to killring."))
 
 ;;;###autoload
 (defun mqttclient-pub-current (&optional raw)
   "Publish current payload.
 Optional argument STAY-IN-WINDOW do not move focus to response buffer if t."
   (interactive)
-  (mqttclient-parse-current-and-do))
+  (mqttclient-parse-current t))
 
 
 (defun mqttclient-jump-next ()
