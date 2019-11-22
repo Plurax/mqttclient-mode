@@ -26,7 +26,7 @@ I borrowed some keys from the restclient, so the usage is straight forward:
 `C-c C-p`: Jump to previous
 `C-c C-n`: Jump to next
 `C-c C-.`: Mark current
-`C-c C-u`: Create mosquitto command from request at point
+`C-c C-u`: Create mosquitto command from request at point (attention - this will include user and password - use at own risk)
 
 As the mode is derived from outline mode, you can fold the payload. But as we are talking about MQTT those payloads should not be that big though.
 
@@ -53,12 +53,14 @@ Feel free to spend time in improving this.
 ### Todos
 
   * [ ] More testing
-  * [ ] Kill existing subscription buffer when pressing `C-c C-c` on SUB again
-  * [ ] Each api file creates its own subscribe buffer (e.g. when playing with multiple brokers)
+  * [x] Kill existing subscription buffer when pressing `C-c C-c` on SUB again
+  * [x] Each api file creates its own subscribe buffer (e.g. when playing with multiple brokers)
   * [ ] Check multiline body function
-  * [ ] Provide info if errors occured during calls (mosquitto_sub / _pub)
+  * [x] Provide info if errors occured during calls (mosquitto_sub / _pub)
   * [ ] Fix some code issues
   * [ ] May be create a package
+  * [x] Added fontify for receive buffer to better distinguish between topic and payload
+  * [x] Create function for shell command export to kill ring (Attention - password included!)
 
 ## Credits
 
