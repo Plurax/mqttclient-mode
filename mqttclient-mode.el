@@ -310,7 +310,7 @@ messages."
           (set-process-query-on-exit-flag process nil)
           (with-current-buffer (process-buffer process)
             (display-buffer (current-buffer))
-            (setq-local header-line-format (format "server: %s:%d subscribe topic: '%s'" mqtt-host mqtt-port mqtt-subscribe-topic))))
+            (setq-local header-line-format (format "server: %s:%d subscribe topic: '%s'" mqtt-host mqtt-port topic))))
       (kill-new (mapconcat 'identity command " ")))))
 
 (defun mqtt-consumer-filter (proc string)
@@ -363,8 +363,8 @@ messages."
                               "-q" ,(int-to-string mqtt-publish-qos-level)
                               ,(if (not (not ca-path))
                                    `("--capath" ,ca-path))
-                              "-m" ,message))))
-    (if execute
+                              "-m", (concat "\"" (format "%s" (string-trim-final-newline message)) "\"")))))
+         (if execute
         (let* ((pub-proc (make-process
                           :name "mqtt-publisher"
                           :command command
