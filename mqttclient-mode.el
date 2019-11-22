@@ -305,7 +305,7 @@ messages."
                                    `("--capath" ,ca-path)))))
         (name "mqtt-consumer")
         (buffer "*mqtt-consumer*"))
-    (let ((process
+    (let (subproc (process
            (make-process
             :name name
             :buffer buffer
@@ -334,6 +334,17 @@ messages."
             (set-window-point (get-buffer-window) (process-mark proc))))))
     (run-hook-with-args 'mqtt-message-receive-functions string)))
 
+(defun string-trim-final-newline (string)
+  (let ((len (length string)))
+    (cond
+      ((and (> len 0) (eql (aref string (- len 1)) ?\n))
+       (substring string 0 (- len 1)))
+      (t string))))
+
+(defun msg-me (process event)
+             (print
+               (format "Process: %s '%s', returning '%i'" (process-name process) (string-trim-final-newline event) (process-exit-status process))))
+
 (defun mqtt-publish-message (mqtt-host mqtt-username mqtt-password message topic &optional c-id t-version ca-path mqtt-port)
   "Publish given MESSAGE to given TOPIC."
   (let* ((command (-flatten `(,mqtt-pub-bin
@@ -352,10 +363,12 @@ messages."
                               ,(if (not (not ca-path))
                                    `("--capath" ,ca-path))
                               "-m" ,message))))
-    (make-process
-     :name "mqtt-publisher"
-     :command command
-     :buffer "*mqtt-publisher*")))
+    (let* ((pub-proc (make-process
+                      :name (concat "mqtt-publisher-" topic)
+                      :command command
+                      :buffer "*mqtt-publisher*"
+                      :sentinel 'msg-me))))))
+;        (message (process-exit-status pub-proc))))))
 
 (defun mqttclient-copy-command ()
   "Formats the request as a mosquitto command and copies the command to the clipboard."
