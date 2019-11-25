@@ -256,7 +256,7 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
       (let ((method (match-string-no-properties 1))
             (topic (match-string-no-properties 2))
             (vars (mqttclient-find-vars-before-point))
-            (mqtt-client-id (cdr (assoc ":client-id" (mqttclient-find-vars-before-point))))
+            (mqtt-client-id (cdr (assoc ":mqtt-client-id" (mqttclient-find-vars-before-point))))
             (mqtt-host (cdr (assoc ":mqtt-host" (mqttclient-find-vars-before-point))))
             (mqtt-tls-version (cdr (assoc ":mqtt-tls-version" (mqttclient-find-vars-before-point))))
             (mqtt-username (cdr (assoc ":mqtt-username" (mqttclient-find-vars-before-point))))
@@ -328,7 +328,8 @@ messages."
             (insert (concat (propertize (format-time-string mqtt-timestamp-format) 'face 'font-lock-comment-face)
                             (propertize (match-string 1 string) 'face 'mqttclient-method-face)
                             " "
-                            (propertize (match-string 2 string)))))
+                            (match-string 2 string)
+                            "\n")))
           (set-marker (process-mark proc) (point)))
         (when moving
           (goto-char (process-mark proc))
@@ -363,7 +364,7 @@ messages."
                               "-q" ,(int-to-string mqtt-publish-qos-level)
                               ,(if (not (not ca-path))
                                    `("--capath" ,ca-path))
-                              "-m", (concat "\"" (format "%s" (string-trim-final-newline message)) "\"")))))
+                              "-m", (format "%s" message)))))
          (if execute
         (let* ((pub-proc (make-process
                           :name "mqtt-publisher"
