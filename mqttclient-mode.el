@@ -455,6 +455,24 @@ Optional argument STAY-IN-WINDOW do not move focus to response buffer if t."
   (unless (mqttclient-toggle-body-visibility)
     (indent-for-tab-command)))
 
+;;;###autoload
+(defun mqttclient-insert-defaults ()
+    "Inserts the default values into the current buffer."
+    (interactive)
+    (setq last-point (mark-marker))
+    (beginning-of-buffer)
+    (insert "# Initial setup\n\
+:mqtt-host := \"\"\n\
+:mqtt-ca-path := \"/etc/ssl/certs\"\n\
+:mqtt-tls-version := \"tlsv1.2\"\n\
+:mqtt-client-id := \"\"\n\
+:mqtt-username := \"\"\n\
+:mqtt-password := \"\"\n\
+:mqtt-port := 8883\n\
+#SUB #")
+    (goto-char last-point))
+
+
 (defconst mqttclient-mode-keywords
   (list (list mqttclient-method-topic-regexp '(1 'mqttclient-method-face) '(2 'mqttclient-topic-face))
         (list mqttclient-svar-regexp '(1 'mqttclient-variable-name-face) '(2 'mqttclient-variable-string-face))
@@ -478,10 +496,9 @@ Optional argument STAY-IN-WINDOW do not move focus to response buffer if t."
     (define-key map (kbd "C-c C-p") 'mqttclient-jump-prev)
     (define-key map (kbd "C-c C-.") 'mqttclient-mark-current)
     (define-key map (kbd "C-c C-u") 'mqttclient-copy-command)
+    (define-key map (kbd "C-c C-d") 'mqttclient-insert-defaults)
     map)
   "Keymap for mqttclient-mode.")
-
-
 
 
 
