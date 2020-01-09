@@ -1,11 +1,11 @@
-;;; mqtt-client.el --- An interactive MQTT client for Emacs
+;;; mqttclient-mode.el --- An interactive MQTT client for Emacs
 ;;
 ;; Public domain.
 
 ;; Author: Christoph Uhlich <christoph@familie-uhlich.de>
 ;; Created: 17 Nov 2019
 ;; Keywords: mqtt
-;; Package-Version: 
+;; Package-Version: 0.1
 
 ;; This file is not part of GNU Emacs.
 ;; This file is public domain software. Do what you want.
@@ -531,4 +531,4 @@ Optional argument STAY-IN-WINDOW do not move focus to response buffer if t."
 (eval-after-load 'helm
   '(ignore-errors (require 'mqttclient-helm)))
 
-;;; mqttclient.el ends here
+;;; mqttclient-mode.el ends here
