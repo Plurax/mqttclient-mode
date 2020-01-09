@@ -526,7 +526,7 @@ Optional argument STAY-IN-WINDOW do not move focus to response buffer if t."
 
 (add-hook 'mqttclient-mode-hook 'mqttclient-outline-mode)
 
-(provide 'mqttclient)
+(provide 'mqttclient-mode)
 
 (eval-after-load 'helm
   '(ignore-errors (require 'mqttclient-helm)))
