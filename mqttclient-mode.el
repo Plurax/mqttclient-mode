@@ -190,9 +190,6 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
 (defconst mqttclient-file-regexp
   "^<[ \t]*\\([^<>\n\r]+\\)[ \t]*$")
 
-(defconst mqttclient-content-type-regexp
-  "^Content-[Tt]ype: \\(\\w+\\)/\\(?:[^\\+\r\n]*\\+\\)*\\([^;\r\n]+\\)")
-
 
 (defun mqttclient-current-min ()
   (save-excursion
