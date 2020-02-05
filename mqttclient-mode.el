@@ -283,7 +283,7 @@ messages."
                                    `("-u" ,mqtt-username
                                      "-P" ,mqtt-password))
                               "-p" ,(int-to-string mqtt-port)
-                              "-t" ,topic
+                              "-t" , (string-join (split-string topic "\\ ") " -t ")
                               ,(if (not (not t-version))
                                    `("--tls-version" ,t-version))
                               "-q" ,(int-to-string mqtt-publish-qos-level)
