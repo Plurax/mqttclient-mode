@@ -190,7 +190,6 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
 (defconst mqttclient-file-regexp
   "^<[ \t]*\\([^<>\n\r]+\\)[ \t]*$")
 
-
 (defun mqttclient-current-min ()
   (save-excursion
     (beginning-of-line)
@@ -268,9 +267,9 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
                    (entity (mqttclient-parse-body (buffer-substring (min (point) cmax) cmax) vars))
                    (topic (mqttclient-replace-all-in-string vars topic)))
               (mqtt-publish-message mqtt-host mqtt-username mqtt-password entity topic execute mqtt-client-id mqtt-tls-version mqtt-ca-path mqtt-port))
-          (mqtt-start-consumer mqtt-host mqtt-username mqtt-password (mqttclient-replace-all-in-string vars topic) execute mqtt-tls-version mqtt-ca-path mqtt-port))))))
+          (mqtt-start-consumer mqtt-host mqtt-username mqtt-password (mqttclient-replace-all-in-string vars topic) execute mqtt-client-id mqtt-tls-version mqtt-ca-path mqtt-port))))))
 
-(defun mqtt-start-consumer (mqtt-host mqtt-username mqtt-password topic execute &optional t-version ca-path mqtt-port)
+(defun mqtt-start-consumer (mqtt-host mqtt-username mqtt-password topic execute &optional c-id t-version ca-path mqtt-port)
   "Start MQTT consumer.
 
 The consumer subscribes to the topic set from the buffer and shows incoming
@@ -284,6 +283,8 @@ messages."
                                      "-P" ,mqtt-password))
                               "-p" ,(int-to-string mqtt-port)
                               "-t" , (string-join (split-string topic "\\ ") " -t ")
+                              ,(if (not (not c-id))
+                                   `("-i" ,c-id))
                               ,(if (not (not t-version))
                                    `("--tls-version" ,t-version))
                               "-q" ,(int-to-string mqtt-publish-qos-level)
@@ -376,13 +377,22 @@ messages."
   (mqttclient-parse-current nil)
   (message "Shell command copied to killring."))
 
-;;;###autoload
-(defun mqttclient-pub-current (&optional raw)
-  "Publish current payload.
-Optional argument STAY-IN-WINDOW do not move focus to response buffer if t."
-  (interactive)
-  (mqttclient-parse-current t))
+(defun multi-publish (times)
+  "Does the publish multiple times."
+  (dotimes (i arg)
+    (progn (message "Publish %s times..." arg)
+           (mqttclient-parse-current t)
+           (sleep-for 1)
+           (message "Multipublish finished..."))))
 
+;;;###autoload
+(defun mqttclient-pub-current (arg &optional raw)
+  "Publish current payload.
+You can publish multiple times with prefix number."
+  (interactive "P")
+  (if arg
+      (make-thread (multi-publish arg))
+    (mqttclient-parse-current t)))
 
 (defun mqttclient-jump-next ()
   "Jump to next request in buffer."
