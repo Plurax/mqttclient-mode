@@ -5,7 +5,7 @@
 ;; Author: Christoph Uhlich <christoph@familie-uhlich.de>
 ;; Created: 17 Nov 2019
 ;; Keywords: mqtt
-;; Package-Version: 0.1
+;; Package-Version: 0.2
 
 ;; This file is not part of GNU Emacs.
 ;; This file is public domain software. Do what you want.
@@ -266,7 +266,7 @@ Example: `(add-to-list 'mqtt-message-receive-functions (lambda (msg) (alert msg)
             (let* ((cmax (mqttclient-current-max))
                    (entity (mqttclient-parse-body (buffer-substring (min (point) cmax) cmax) vars))
                    (topic (mqttclient-replace-all-in-string vars topic)))
-              (mqtt-publish-message mqtt-host mqtt-username mqtt-password entity topic execute mqtt-client-id mqtt-tls-version mqtt-ca-path mqtt-port))
+              (mqtt-publish-message mqtt-host mqtt-username mqtt-password entity (mqttclient-replace-all-in-string vars topic) execute mqtt-client-id mqtt-tls-version mqtt-ca-path mqtt-port))
           (mqtt-start-consumer mqtt-host mqtt-username mqtt-password (mqttclient-replace-all-in-string vars topic) execute mqtt-client-id mqtt-tls-version mqtt-ca-path mqtt-port))))))
 
 (defun mqtt-start-consumer (mqtt-host mqtt-username mqtt-password topic execute &optional c-id t-version ca-path mqtt-port)
