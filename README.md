@@ -13,7 +13,7 @@ From restclient, I used the regex matching for payloads and variable replacement
 I dont know yet how to provide this on MELPA, but I try to get the code clean enough to face this.
 Unless this is available, just load it manually with require or cask from git. You need to install mosquitto-clients.
 
-``` 1c-enterprise
+``` shell
 apt-get install mosquitto-clients
 ```
 
@@ -35,7 +35,7 @@ As the mode is derived from outline mode, you can fold the payload. But as we ar
 All parameters can be derived from the api file which the mode rans on. Variables are interpretede for the whole file until the request at point.
 That means you can provide the port once at the beginning...
 
-``` 1c-enterprise
+``` shell
 # Initial setup
 :mqtt-host := "localhost"
 #:mqtt-ca-path := "/path/to/certs"
@@ -45,7 +45,7 @@ That means you can provide the port once at the beginning...
 :mqtt-port := 1883
 SUB #
 ```
-
+    
 ## Contributing
 
 Feel free to spend time in improving this.
